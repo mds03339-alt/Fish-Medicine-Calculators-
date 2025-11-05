@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>পুকুর ওষুধ ক্যালকুলেটর</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --bg-light: linear-gradient(135deg, #80deea, #26a69a);
+  --bg-dark: linear-gradient(135deg, #004d40, #00695c);
+  --card-light: #e0f2f1;
+  --card-dark: #004d40;
+  --text-light: #004d40;
+  --text-dark: #e0f2f1;
+  --btn-calc: linear-gradient(90deg, #26a69a, #00796b);
+  --btn-calc-dark: linear-gradient(90deg, #00796b, #004d40);
+  --btn-clear: linear-gradient(90deg, #ef5350, #b71c1c);
+}
+
+body {
+  font-family: 'Noto Sans Bengali', sans-serif;
+  margin:0; display:flex; justify-content:center; align-items:center;
+  min-height:100vh; padding:10px; background: var(--bg-light);
+  transition: background 0.4s;
+}
+body.dark { background: var(--bg-dark); }
+
+.calculator {
+  background:#ffffff; padding:30px 25px; border-radius:25px;
+  box-shadow:0 20px 40px rgba(0,0,0,0.3); max-width:480px; width:100%;
+  transition: transform 0.3s, box-shadow 0.3s, background 0.4s;
+}
+body.dark .calculator { background:#00695c; }
+
+.calculator:hover { transform: translateY(-5px); box-shadow:0 25px 50px rgba(0,0,0,0.35); }
+
+h1 { text-align:center; font-size:28px; color: var(--text-light); margin-bottom:5px; font-weight:800; transition: color 0.4s;}
+body.dark h1 { color: var(--text-dark);}
+h2 { text-align:center; font-size:15px; color: var(--text-light); margin-bottom:20px; font-weight:500; transition: color 0.4s;}
+body.dark h2 { color: var(--text-dark);}
+
+.group {
+  background: var(--card-light); padding:14px 16px; border-radius:18px; margin-bottom:18px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: transform 0.3s, background 0.4s;
+}
+body.dark .group { background: var(--card-dark);}
+.group:hover { transform: scale(1.02); box-shadow:0 6px 16px rgba(0,0,0,0.15); }
+
+label { display:block; margin-bottom:6px; font-weight:600; font-size:14px; color:#00695c; transition: color 0.4s;}
+body.dark label { color:#b2dfdb;}
+input, select {
+  width:100%; padding:12px 14px; border:1.5px solid #b2dfdb; border-radius:12px; font-size:14px;
+  outline:none; transition:0.3s, background 0.4s, color 0.4s;
+}
+body.dark input, body.dark select { background:#004d40; color:#e0f2f1; border:1.5px solid #80cbc4;}
+input:focus, select:focus { border-color:#009688; box-shadow:0 0 12px rgba(0,150,136,0.3); }
+
+.btn-group { display:flex; justify-content:space-between; margin-top:24px; }
+button {
+  width:48%; padding:14px; font-size:16px; font-weight:700; border:none; border-radius:15px;
+  cursor:pointer; transition:0.3s; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px;
+}
+button:active { transform: scale(0.97); }
+#calculateBtn { background: var(--btn-calc);}
+body.dark #calculateBtn { background: var(--btn-calc-dark);}
+#clearBtn { background: var(--btn-clear); }
+
+#darkToggle {
+  margin-bottom:18px; width:100%; padding:10px; border-radius:12px;
+  border:none; cursor:pointer; font-weight:600; background:#00796b; color:#fff; transition:0.3s;
+}
+#darkToggle:hover { background:#004d40; }
+
+canvas { margin-top:20px; border-radius:15px; }
+body.dark canvas { background:rgba(0,0,0,0.5);}
+.hidden { display:none; }
+@media (max-width:500px){ .calculator{padding:25px 20px;} button{font-size:14px; padding:12px;} }
+
+/* Modal */
+.modal {
+  display:none; position:fixed; z-index:1000; left:0; top:0;
+  width:100%; height:100%; overflow:auto;
+  background-color:rgba(0,0,0,0.6); backdrop-filter:blur(2px);
+}
+.modal-content {
+  background-color:#f0f0f0; margin:10% auto; padding:20px; border-radius:20px; max-width:400px;
+  text-align:center; position:relative;
+  box-shadow:0 10px 25px rgba(0,0,0,0.3);
+}
+body.dark .modal-content { background-color:#004d40; color:#e0f2f1;}
+.close { position:absolute; top:12px; right:18px; font-size:22px; font-weight:bold; cursor:pointer; color:#333; }
+body.dark .close { color:#fff;}
+</style>
+</head>
+<body>
+<div class="calculator">
+<h1>পুকুর ওষুধ ক্যালকুলেটর 💧</h1>
+<h2>Created by Delowar Hossain</h2>
+<button id="darkToggle" onclick="toggleDark()">🌙 ডার্ক/লাইট মোড</button>
+
+<div class="group">
+<label>পুকুরের আয়তন:</label>
+<input type="number" id="area" placeholder="যেমন 100">
+<label>আয়তনের একক:</label>
+<select id="unit">
+<option value="shotok">শতক</option>
+<option value="acre">একর</option>
+<option value="sqft">বর্গফুট</option>
+</select>
+</div>
+
+<div class="group">
+<label>হিসাব ধরন:</label>
+<select id="calcType" onchange="toggleInputs()">
+<option value="">-- নির্বাচন করুন --</option>
+<option value="perFt">গভীরতা অনুযায়ী (প্রতি ১ ফিট)</option>
+<option value="perShotok">শতক অনুযায়ী</option>
+</select>
+</div>
+
+<div id="perFtInputs" class="hidden group">
+<label>গভীরতা (ফুট):</label>
+<input type="number" id="depth" placeholder="যেমন 6">
+<label>প্রতি ১ ফিট গভীরতার জন্য ওষুধ (মিলি/শতক):</label>
+<input type="number" id="dosePerFtML" placeholder="যেমন 0.5" step="0.01">
+<label>প্রতি ১ ফিট গভীরতার জন্য ওষুধ (গ্রাম/শতক):</label>
+<input type="number" id="dosePerFtG" placeholder="যেমন 0.5" step="0.01">
+</div>
+
+<div id="perShotokInputs" class="hidden group">
+<label>ধরন নির্বাচন করুন:</label>
+<select id="shotokUnit" onchange="toggleShotokInputs()">
+<option value="">-- নির্বাচন করুন --</option>
+<option value="ml">মিলি</option>
+<option value="g">গ্রাম</option>
+</select>
+<div id="shotokMLInput" class="hidden">
+<label>প্রতি শতক অনুযায়ী ওষুধ (মিলি):</label>
+<input type="number" id="dosePerShotokML" placeholder="যেমন 50" step="0.01">
+</div>
+<div id="shotokGInput" class="hidden">
+<label>প্রতি শতক অনুযায়ী ওষুধ (গ্রাম):</label>
+<input type="number" id="dosePerShotokG" placeholder="যেমন 50" step="0.01">
+</div>
+</div>
+
+<div class="btn-group">
+<button id="calculateBtn" onclick="calculate()">📊 হিসাব করুন</button>
+<button id="clearBtn" onclick="clearAll()">🧹 Clear</button>
+</div>
+</div>
+
+<!-- Modal -->
+<div id="resultModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <div id="modalText"></div>
+    <canvas id="chart"></canvas>
+  </div>
+</div>
+
+<script>
+function toggleDark(){ document.body.classList.toggle("dark"); }
+function toggleInputs(){
+  const type=document.getElementById("calcType").value;
+  document.getElementById("perFtInputs").classList.add("hidden");
+  document.getElementById("perShotokInputs").classList.add("hidden");
+  document.getElementById("shotokMLInput").classList.add("hidden");
+  document.getElementById("shotokGInput").classList.add("hidden");
+  if(type==="perFt") document.getElementById("perFtInputs").classList.remove("hidden");
+  else if(type==="perShotok") document.getElementById("perShotokInputs").classList.remove("hidden");
+}
+function toggleShotokInputs(){
+  const unit=document.getElementById("shotokUnit").value;
+  document.getElementById("shotokMLInput").classList.add("hidden");
+  document.getElementById("shotokGInput").classList.add("hidden");
+  if(unit==="ml") document.getElementById("shotokMLInput").classList.remove("hidden");
+  else if(unit==="g") document.getElementById("shotokGInput").classList.remove("hidden");
+}
+
+let chartInstance=null;
+
+function calculate(){
+  const area=parseFloat(document.getElementById("area").value);
+  const modal=document.getElementById("resultModal");
+  const modalText=document.getElementById("modalText");
+  const canvas=document.getElementById("chart");
+  if(isNaN(area)){ alert("অনুগ্রহ করে পুকুরের আয়তন দিন।"); return;}
+  
+  const type=document.getElementById("calcType").value;
+  let totalML=0,totalG=0;
+  if(type==="perFt"){
+    const depth=parseFloat(document.getElementById("depth").value);
+    const doseML=parseFloat(document.getElementById("dosePerFtML").value);
+    const doseG=parseFloat(document.getElementById("dosePerFtG").value);
+    if(isNaN(depth)&&(isNaN(doseML)&&isNaN(doseG))){ alert("অনুগ্রহ করে সব ইনপুট পূরণ করুন।"); return;}
+    totalML=!isNaN(doseML)?doseML*depth*area:doseG*depth*area;
+    totalG=!isNaN(doseG)?doseG*depth*area:doseML*depth*area;
+  } else if(type==="perShotok"){
+    const unit=document.getElementById("shotokUnit").value;
+    if(unit==="ml"){ const dose=parseFloat(document.getElementById("dosePerShotokML").value); if(isNaN(dose)){ alert("মিলি ইনপুট দিন।"); return;} totalML=dose*area; totalG=totalML;}
+    else if(unit==="g"){ const dose=parseFloat(document.getElementById("dosePerShotokG").value); if(isNaN(dose)){ alert("গ্রাম ইনপুট দিন।"); return;} totalG=dose*area; totalML=totalG;}
+    else{ alert("একক নির্বাচন করুন।"); return;}
+  } else{ alert("হিসাব ধরন নির্বাচন করুন।"); return;}
+  
+  const totalL=totalML/1000;
+  const totalKG=totalG/1000;
+  
+  modalText.innerHTML=`💧 মোট ওষুধ: ${totalML.toFixed(2)} মিলি (~${totalL.toFixed(3)} লিটার)<br>
+⚗️ ওজন: ${totalG.toFixed(2)} গ্রাম (~${totalKG.toFixed(3)} কেজি)`;
+
+  modal.style.display="block";
+
+  if(chartInstance) chartInstance.destroy();
+  const ctx=canvas.getContext('2d');
+  chartInstance=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:['মিলি','লিটার','গ্রাম','কেজি'],
+      datasets:[{
+        label:'মোট ওষুধ',
+        data:[totalML,totalL,totalG,totalKG],
+        backgroundColor:['#26a69a','#80deea','#ef5350','#ff8a65']
+      }]
+    },
+    options:{ responsive:true, plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true } } }
+  });
+}
+
+function closeModal(){ document.getElementById("resultModal").style.display="none"; }
+
+function clearAll(){
+  document.getElementById("area").value="";
+  document.getElementById("depth").value="";
+  document.getElementById("dosePerFtML").value="";
+  document.getElementById("dosePerFtG").value="";
+  document.getElementById("dosePerShotokML").value="";
+  document.getElementById("dosePerShotokG").value="";
+  document.getElementById("calcType").value="";
+  document.getElementById("shotokUnit").value="";
+  document.getElementById("perFtInputs").classList.add("hidden");
+  document.getElementById("perShotokInputs").classList.add("hidden");
+  document.getElementById("shotokMLInput").classList.add("hidden");
+  document.getElementById("shotokGInput").classList.add("hidden");
+  closeModal();
+  if(chartInstance) chartInstance.destroy();
+}
+</script>
+</body>
+</html>
